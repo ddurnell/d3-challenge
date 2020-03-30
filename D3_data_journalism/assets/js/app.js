@@ -1,5 +1,12 @@
 function makeResponsive() {
 
+    // wipe any previous attempts
+    var svgArea = d3.selectAll("svg");
+    //console.log(svgArea);
+    if (!svgArea.empty()) {
+        svgArea.remove();
+      }
+
     // The total chart size
     var svgWidth = 960;
     var svgHeight = 500;
@@ -15,9 +22,6 @@ function makeResponsive() {
     // the SVG size
     var width = svgWidth - margin.left - margin.right;
     var height = svgHeight - margin.top - margin.bottom;
-
-    // wipe any previous attempts
-    var svg = d3.select("svg").remove();
 
     // Create an SVG wrapper, append an SVG group that will hold our chart,
     // and shift the latter by left and top margins.
@@ -36,19 +40,20 @@ function makeResponsive() {
 
     // function used for updating x-scale var upon click on axis label
     function xScale(smokesData, chosenXAxis) {
+        //console.log(chosenXAxis);
         // create scales
         var xLinearScale = d3.scaleLinear()
             .domain([d3.min(smokesData, d => d[chosenXAxis]) * 0.8,
             d3.max(smokesData, d => d[chosenXAxis]) * 1.2
             ])
             .range([0, width]);
+        console.log(width);
         return xLinearScale;
     }; // end of xScale
 
     // function used for updating xAxis var upon click on axis label
-    function renderAxes(newXScale, xAxis) {
-        var bottomAxis = d3.axisBottom(newXScale);
-
+    function renderAxes(xScale, xAxis) {
+        var bottomAxis = d3.axisBottom(xScale);
         xAxis.transition()
             .duration(1000)
             .call(bottomAxis);
@@ -57,11 +62,10 @@ function makeResponsive() {
 
     // function used for updating circles group with a transition to
     // new circles
-    function renderCircles(circlesGroup, newXScale, chosenXAxis) {
-
+    function renderCircles(circlesGroup, xScale, chosenXAxis) {
         circlesGroup.transition()
             .duration(1000)
-            .attr("cx", d => newXScale(d[chosenXAxis]));
+            .attr("cx", d => xScale(d[chosenXAxis]));
         return circlesGroup;
     }; // end of renderCircles
 
@@ -104,6 +108,8 @@ function makeResponsive() {
         // format data to numbers
         smokesData.forEach(function (data) {
             data.smokesHigh = +data.smokesHigh;
+            data.smokesLow = +data.smokesLow;
+            data.smokes = +data.smokes;
             data.income = +data.income;
         });
 
@@ -132,6 +138,8 @@ function makeResponsive() {
             .call(leftAxis);
 
         // append initial circles
+        console.log(chosenXAxis);
+        console.log(smokesData[0][chosenXAxis]);
         var circlesGroup = chartGroup.selectAll("circle")
             .data(smokesData)
             .enter()
@@ -146,21 +154,21 @@ function makeResponsive() {
         var labelsGroup = chartGroup.append("g")
             .attr("transform", `translate(${width / 2}, ${height + 20})`);
 
-        var heavy = labelsGroup.append("text")
+        var highLabel = labelsGroup.append("text")
         .attr("x", 0)
         .attr("y", 20)
         .attr("value", "smokesHigh") // value to grab for event listener
         .classed("active", true)
         .text("% Heavy Smokers");
 
-        var albumsLabel = labelsGroup.append("text")
+        var lowLabel = labelsGroup.append("text")
         .attr("x", 0)
         .attr("y", 40)
         .attr("value", "smokesLow") // value to grab for event listener
         .classed("inactive", true)
         .text("% Light Smokers");
 
-        var albumsLabel = labelsGroup.append("text")
+        var genLabel = labelsGroup.append("text")
         .attr("x", 0)
         .attr("y", 60)
         .attr("value", "smokes") // value to grab for event listener
@@ -180,50 +188,68 @@ function makeResponsive() {
         // updateToolTip function above csv import
         var circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
 
-        // // x axis labels event listener
-        // labelsGroup.selectAll("text")
-        //     .on("click", function () {
-        //         // get value of selection
-        //         var value = d3.select(this).attr("value");
-        //         if (value !== chosenXAxis) {
+        // x axis labels event listener
+        labelsGroup.selectAll("text")
+            .on("click", function () {
+                // get value of selection
+                var value = d3.select(this).attr("value");
+                if (value !== chosenXAxis) {
 
-        //             // replaces chosenXAxis with value
-        //             chosenXAxis = value;
+                    // replaces chosenXAxis with value
+                    chosenXAxis = value;
 
-        //             // console.log(chosenXAxis)
+                    // console.log(chosenXAxis)
 
-        //             // functions here found above csv import
-        //             // updates x scale for new data
-        //             xLinearScale = xScale(smokesData, chosenXAxis);
+                    // functions here found above csv import
+                    // updates x scale for new data
+                    xLinearScale = xScale(smokesData, chosenXAxis);
 
-        //             // updates x axis with transition
-        //             xAxis = renderAxes(xLinearScale, xAxis);
+                    // updates x axis with transition
+                    xAxis = renderAxes(xLinearScale, xAxis);
 
-        //             // updates circles with new x values
-        //             circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis);
+                    // updates circles with new x values
+                    circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis);
 
-        //             // updates tooltips with new info
-        //             circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
+                    // updates tooltips with new info
+                    circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
 
-        //             // changes classes to change bold text
-        //             if (chosenXAxis === "smokesHigh") {
-        //                 albumsLabel
-        //                     .classed("active", true)
-        //                     .classed("inactive", false);
-        //                 hairLengthLabel
-        //                     .classed("active", false)
-        //                     .classed("inactive", true);
-        //             }
-        //             else {
-        //                 albumsLabel
-        //                     .classed("active", false)
-        //                     .classed("inactive", true);
-        //                 hairLengthLabel
-        //                     .classed("active", true)
-        //                     .classed("inactive", false);
-        //             }
-        //         } // end of listener
-    }); // end of readData
+                    // changes classes to change bold text
+                    if (chosenXAxis === "smokesHigh") {
+                        highLabel
+                            .classed("active", true)
+                            .classed("inactive", false);
+                        lowLabel
+                            .classed("active", false)
+                            .classed("inactive", true);
+                        genLabel
+                            .classed("active", false)
+                            .classed("inactive", true);
+                    }
+                    else if (chosenXAxis === "smokesLow") {
+                        highLabel
+                            .classed("active", false)
+                            .classed("inactive", true);
+                        lowLabel
+                            .classed("active", true)
+                            .classed("inactive", false);
+                        genLabel
+                            .classed("active", false)
+                            .classed("inactive", true);
+                    }
+                }
+                else {
+                    highLabel
+                    .classed("active", false)
+                    .classed("inactive", true);
+                    lowLabel
+                        .classed("active", false)
+                        .classed("inactive", true);
+                    genLabel
+                        .classed("active", true)
+                        .classed("inactive", false);
+                }
+            }); // end of listener
+    });// end of smokesData
 }; // end of makeResponsive
 
 makeResponsive();
