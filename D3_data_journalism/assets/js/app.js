@@ -1,9 +1,14 @@
 function makeResponsive() {
 
-    // VARIABLES
-    // The total chart size
-    var svgWidth = 960;
-    var svgHeight = 500;
+    // GLOBAL VARIABLES
+    // SVG wrapper dimensions are determined by the current width
+    // and height of the browser window.
+    var svgWidth = window.innerWidth;
+    var svgHeight = window.innerHeight;
+
+    // Chart data
+    var healthData = null;
+
     // the buffers
     var margin = {
         top: 20,
@@ -21,8 +26,8 @@ function makeResponsive() {
 
     // Labels for axes choices
     var labels = {
-        "income" : "Income ($)",
-        "smokes" : "Smokers (%)"
+        "income": "Median Income ($)",
+        "smokes": "Smokers (%)"
     }
 
     // START THE HTML
@@ -63,7 +68,7 @@ function makeResponsive() {
             .range([height, 0]);
         return yLinearScale;
     }; // end of xScale
-    
+
     // function used for updating xAxis var upon click on axis label
     function renderAxes(xScale, xAxis) {
         var bottomAxis = d3.axisBottom(xScale);
@@ -84,24 +89,21 @@ function makeResponsive() {
 
     // function used for updating circles group with new tooltip
     function updateToolTip(chosenXAxis, circlesGroup) {
-        var label;
-        if (chosenXAxis === "smokesHigh") {
-            label = "Smokes a Lot";
-        }
-        else if (chosenXAxis === "smokesLow") {
-            label = "Smokes a Little";
-        }
-        else {
-            label = "Smokes Some";
-        }
+        var label = "hi";
+        // if (chosenXAxis === "smokesHigh") {
+        //     label = "Smokes a Lot";
+        // }
+        // else if (chosenXAxis === "smokesLow") {
+        //     label = "Smokes a Little";
+        // }
+        // else {
+        //     label = "Smokes Some";
+        // }
         var toolTip = d3.tip()
             .attr("class", "tooltip")
             .offset([80, -60])
-            .html(function (d) {
-                return (`${d[chosenXAxis]}%<br>
-                ${d.state}<br>${label} `);
-            });
-
+            .html(d => `<strong>${d.state} <br>${labels[chosenXAxis]}: ${d[chosenXAxis]} <br>${labels[chosenYAxis]}: ${d[chosenYAxis]}<strong>`);
+    
         circlesGroup.call(toolTip);
 
         // mouseover events
@@ -116,15 +118,7 @@ function makeResponsive() {
         return circlesGroup;
     }; // end of updateToolTip
 
-    // LOAD THE DATA AND DO STUFF
-    // // Retrieve data from the CSV file and execute everything below
-    d3.csv("assets/data/data.csv").then(function (healthData) {
-        // format data to numbers
-        healthData.forEach(function (data) {
-            data.income = +data.income;
-            data.smokes = +data.smokes;
-        });
-
+    function init() {
         // make scales
         var xLinearScale = xScale(healthData, chosenXAxis);
         var yLinearScale = yScale(healthData, chosenYAxis);
@@ -159,11 +153,11 @@ function makeResponsive() {
             .attr("transform", `translate(${width / 2}, ${height + 20})`);
 
         var labelOne = labelsGroup.append("text")
-        .attr("x", 0)
-        .attr("y", 20)
-        .attr("value", chosenXAxis) // value to grab for event listener
-        .classed("active", true)
-        .text(labels[chosenXAxis]);
+            .attr("x", 0)
+            .attr("y", 20)
+            .attr("value", chosenXAxis) // value to grab for event listener
+            .classed("active", true)
+            .text(labels[chosenXAxis]);
 
         // var lowLabel = labelsGroup.append("text")
         // .attr("x", 0)
@@ -243,8 +237,8 @@ function makeResponsive() {
                 }
                 else {
                     highLabel
-                    .classed("active", false)
-                    .classed("inactive", true);
+                        .classed("active", false)
+                        .classed("inactive", true);
                     lowLabel
                         .classed("active", false)
                         .classed("inactive", true);
@@ -253,7 +247,25 @@ function makeResponsive() {
                         .classed("inactive", false);
                 }
             }); // end of listener
-    });// end of smokesData
+    }; // end of init
+
+    // LOAD THE DATA AND DO STUFF
+    // Load data from data.csv
+    d3.csv("assets/data/data.csv").then((data, error) => {
+        // Throw an error if one occurs in case we want to handle it in some way
+        if (error) throw error;
+
+        // Parse data: Cast the columns we care about to numbers
+        data.forEach(function (data) {
+            data.income = +data.income;
+            data.smokes = +data.smokes;
+        });
+
+        // load the data for the whole file
+        healthData = data;
+        // Initialize scatter chart
+        init();
+    });
 }; // end of makeResponsive
 
 makeResponsive();
