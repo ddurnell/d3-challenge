@@ -5,10 +5,8 @@ function makeResponsive() {
     // and height of the browser window.
     var svgWidth = window.innerWidth;
     var svgHeight = window.innerHeight;
-
     // Chart data
     var healthData = null;
-
     // the buffers
     var margin = {
         top: 20,
@@ -19,16 +17,17 @@ function makeResponsive() {
     // the SVG size
     var width = svgWidth - margin.left - margin.right;
     var height = svgHeight - margin.top - margin.bottom;
-
     // Axes choices
     var chosenXAxis = "income";
     var chosenYAxis = "smokes";
-
     // Labels for axes choices
     var labels = {
         "income": "Median Income ($)",
         "smokes": "Smokers (%)"
     }
+    // radius of the circles
+    var r = 10;
+
 
     // START THE HTML
     // wipe any previous attempts
@@ -48,7 +47,6 @@ function makeResponsive() {
     var chartGroup = svg.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-
     // FUNCTIONS
     // function used for updating x-scale var upon click on axis label
     function xScale(healthData, chosenXAxis) {
@@ -61,7 +59,7 @@ function makeResponsive() {
         return xLinearScale;
     }; // end of xScale
 
-    // function used for updating x-scale var upon click on axis label
+    // function used for updating y-scale var upon click on axis label
     function yScale(healthData, chosenYAxis) {
         var yLinearScale = d3.scaleLinear()
             .domain([0, d3.max(healthData, d => d[chosenYAxis])])
@@ -89,16 +87,6 @@ function makeResponsive() {
 
     // function used for updating circles group with new tooltip
     function updateToolTip(chosenXAxis, circlesGroup) {
-        var label = "hi";
-        // if (chosenXAxis === "smokesHigh") {
-        //     label = "Smokes a Lot";
-        // }
-        // else if (chosenXAxis === "smokesLow") {
-        //     label = "Smokes a Little";
-        // }
-        // else {
-        //     label = "Smokes Some";
-        // }
         var toolTip = d3.tip()
             .attr("class", "tooltip")
             .offset([80, -60])
@@ -118,6 +106,7 @@ function makeResponsive() {
         return circlesGroup;
     }; // end of updateToolTip
 
+    // Do everything to set up the svg from scratch
     function init() {
         // make scales
         var xLinearScale = xScale(healthData, chosenXAxis);
@@ -140,13 +129,28 @@ function makeResponsive() {
         // append initial circles
         var circlesGroup = chartGroup.selectAll("circle")
             .data(healthData)
-            .enter()
-            .append("circle")
+
+        // make the enter marker
+        var circlesGroup = circlesGroup.enter()
+            .append("g")
+            .attr("id", "elemEnter");
+
+        // Create the circle for each block
+        circlesGroup.append("circle")
             .attr("cx", d => xLinearScale(d[chosenXAxis]))
             .attr("cy", d => yLinearScale(d[chosenYAxis]))
-            .attr("r", 10)
+            .attr("r", r)
             .attr("fill", "blue")
-            .attr("opacity", ".7");
+            .attr("opacity", ".6");
+        
+        // Create the text for each circle
+        circlesGroup.append("text")
+        .attr("dx", d => xLinearScale(d[chosenXAxis]))
+        .attr("dy", d => yLinearScale(d[chosenYAxis]) + r/3)
+        .classed("stateText", true)
+        .attr("font-size", parseInt(r*0.9))
+        .text(d => d.abbr);
+
 
         // Create group for  3 x- axis labels
         var labelsGroup = chartGroup.append("g")
@@ -211,41 +215,41 @@ function makeResponsive() {
                     // updates tooltips with new info
                     circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
 
-                    // changes classes to change bold text
-                    if (chosenXAxis === "smokesHigh") {
-                        highLabel
-                            .classed("active", true)
-                            .classed("inactive", false);
-                        lowLabel
-                            .classed("active", false)
-                            .classed("inactive", true);
-                        genLabel
-                            .classed("active", false)
-                            .classed("inactive", true);
-                    }
-                    else if (chosenXAxis === "smokesLow") {
-                        highLabel
-                            .classed("active", false)
-                            .classed("inactive", true);
-                        lowLabel
-                            .classed("active", true)
-                            .classed("inactive", false);
-                        genLabel
-                            .classed("active", false)
-                            .classed("inactive", true);
-                    }
-                }
-                else {
-                    highLabel
-                        .classed("active", false)
-                        .classed("inactive", true);
-                    lowLabel
-                        .classed("active", false)
-                        .classed("inactive", true);
-                    genLabel
-                        .classed("active", true)
-                        .classed("inactive", false);
-                }
+                //     // changes classes to change bold text
+                //     if (chosenXAxis === "smokesHigh") {
+                //         highLabel
+                //             .classed("active", true)
+                //             .classed("inactive", false);
+                //         lowLabel
+                //             .classed("active", false)
+                //             .classed("inactive", true);
+                //         genLabel
+                //             .classed("active", false)
+                //             .classed("inactive", true);
+                //     }
+                //     else if (chosenXAxis === "smokesLow") {
+                //         highLabel
+                //             .classed("active", false)
+                //             .classed("inactive", true);
+                //         lowLabel
+                //             .classed("active", true)
+                //             .classed("inactive", false);
+                //         genLabel
+                //             .classed("active", false)
+                //             .classed("inactive", true);
+                //     }
+                // }
+                // else {
+                //     highLabel
+                //         .classed("active", false)
+                //         .classed("inactive", true);
+                //     lowLabel
+                //         .classed("active", false)
+                //         .classed("inactive", true);
+                //     genLabel
+                //         .classed("active", true)
+                //         .classed("inactive", false);
+                }; // end of if
             }); // end of listener
     }; // end of init
 
