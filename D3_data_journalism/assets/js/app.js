@@ -1,28 +1,37 @@
 function makeResponsive() {
 
-    // wipe any previous attempts
-    var svgArea = d3.selectAll("svg");
-    //console.log(svgArea);
-    if (!svgArea.empty()) {
-        svgArea.remove();
-      }
-
+    // VARIABLES
     // The total chart size
     var svgWidth = 960;
     var svgHeight = 500;
-
     // the buffers
     var margin = {
         top: 20,
         right: 40,
         bottom: 80,
-        left: 100
+        left: 45
     };
-
     // the SVG size
     var width = svgWidth - margin.left - margin.right;
     var height = svgHeight - margin.top - margin.bottom;
 
+    // Axes choices
+    var chosenXAxis = "income";
+    var chosenYAxis = "smokes";
+
+    // Labels for axes choices
+    var labels = {
+        "income" : "Income ($)",
+        "smokes" : "Smokers (%)"
+    }
+
+    // START THE HTML
+    // wipe any previous attempts
+    var svgArea = d3.selectAll("svg");
+    //console.log(svgArea);
+    if (!svgArea.empty()) {
+        svgArea.remove();
+    }
     // Create an SVG wrapper, append an SVG group that will hold our chart,
     // and shift the latter by left and top margins.
     svg = d3
@@ -30,27 +39,31 @@ function makeResponsive() {
         .append("svg")
         .attr("width", svgWidth)
         .attr("height", svgHeight);
-
     // Append an SVG group
     var chartGroup = svg.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    // Initial Params
-    var chosenXAxis = "smokesHigh";
 
+    // FUNCTIONS
     // function used for updating x-scale var upon click on axis label
-    function xScale(smokesData, chosenXAxis) {
-        //console.log(chosenXAxis);
-        // create scales
+    function xScale(healthData, chosenXAxis) {
         var xLinearScale = d3.scaleLinear()
-            .domain([d3.min(smokesData, d => d[chosenXAxis]) * 0.8,
-            d3.max(smokesData, d => d[chosenXAxis]) * 1.2
+            .domain([d3.min(healthData, d => d[chosenXAxis]) * 0.8,
+            d3.max(healthData, d => d[chosenXAxis]) * 1.2
             ])
             .range([0, width]);
-        console.log(width);
+        // console.log(width);
         return xLinearScale;
     }; // end of xScale
 
+    // function used for updating x-scale var upon click on axis label
+    function yScale(healthData, chosenYAxis) {
+        var yLinearScale = d3.scaleLinear()
+            .domain([0, d3.max(healthData, d => d[chosenYAxis])])
+            .range([height, 0]);
+        return yLinearScale;
+    }; // end of xScale
+    
     // function used for updating xAxis var upon click on axis label
     function renderAxes(xScale, xAxis) {
         var bottomAxis = d3.axisBottom(xScale);
@@ -103,25 +116,18 @@ function makeResponsive() {
         return circlesGroup;
     }; // end of updateToolTip
 
+    // LOAD THE DATA AND DO STUFF
     // // Retrieve data from the CSV file and execute everything below
-    d3.csv("assets/data/data.csv").then(function (smokesData) {
+    d3.csv("assets/data/data.csv").then(function (healthData) {
         // format data to numbers
-        smokesData.forEach(function (data) {
-            data.smokesHigh = +data.smokesHigh;
-            data.smokesLow = +data.smokesLow;
-            data.smokes = +data.smokes;
+        healthData.forEach(function (data) {
             data.income = +data.income;
+            data.smokes = +data.smokes;
         });
 
-        // Create x scale from previous function for smoke alot
-        //console.log(smokesData);
-        //console.log(chosenXAxis)
-        var xLinearScale = xScale(smokesData, chosenXAxis);
-
-        // Create y scale function for income
-        var yLinearScale = d3.scaleLinear()
-            .domain([0, d3.max(smokesData, d => d.income)])
-            .range([height, 0]);
+        // make scales
+        var xLinearScale = xScale(healthData, chosenXAxis);
+        var yLinearScale = yScale(healthData, chosenYAxis);
 
         // Create initial axis functions
         var bottomAxis = d3.axisBottom(xLinearScale);
@@ -138,15 +144,13 @@ function makeResponsive() {
             .call(leftAxis);
 
         // append initial circles
-        console.log(chosenXAxis);
-        console.log(smokesData[0][chosenXAxis]);
         var circlesGroup = chartGroup.selectAll("circle")
-            .data(smokesData)
+            .data(healthData)
             .enter()
             .append("circle")
             .attr("cx", d => xLinearScale(d[chosenXAxis]))
-            .attr("cy", d => yLinearScale(d.income))
-            .attr("r", 20)
+            .attr("cy", d => yLinearScale(d[chosenYAxis]))
+            .attr("r", 10)
             .attr("fill", "blue")
             .attr("opacity", ".7");
 
@@ -154,26 +158,26 @@ function makeResponsive() {
         var labelsGroup = chartGroup.append("g")
             .attr("transform", `translate(${width / 2}, ${height + 20})`);
 
-        var highLabel = labelsGroup.append("text")
+        var labelOne = labelsGroup.append("text")
         .attr("x", 0)
         .attr("y", 20)
-        .attr("value", "smokesHigh") // value to grab for event listener
+        .attr("value", chosenXAxis) // value to grab for event listener
         .classed("active", true)
-        .text("% Heavy Smokers");
+        .text(labels[chosenXAxis]);
 
-        var lowLabel = labelsGroup.append("text")
-        .attr("x", 0)
-        .attr("y", 40)
-        .attr("value", "smokesLow") // value to grab for event listener
-        .classed("inactive", true)
-        .text("% Light Smokers");
+        // var lowLabel = labelsGroup.append("text")
+        // .attr("x", 0)
+        // .attr("y", 40)
+        // .attr("value", "smokesLow") // value to grab for event listener
+        // .classed("inactive", true)
+        // .text("% Light Smokers");
 
-        var genLabel = labelsGroup.append("text")
-        .attr("x", 0)
-        .attr("y", 60)
-        .attr("value", "smokes") // value to grab for event listener
-        .classed("inactive", true)
-        .text("% Smokers");
+        // var genLabel = labelsGroup.append("text")
+        // .attr("x", 0)
+        // .attr("y", 60)
+        // .attr("value", "smokes") // value to grab for event listener
+        // .classed("inactive", true)
+        // .text("% Smokers");
 
         // append y axis
         chartGroup.append("text")
@@ -182,7 +186,7 @@ function makeResponsive() {
             .attr("x", 0 - (height / 2))
             .attr("dy", "1em")
             .classed("active", true)
-            .text("Income")
+            .text(labels[chosenYAxis])
             .attr("strong");
 
         // updateToolTip function above csv import
@@ -202,7 +206,7 @@ function makeResponsive() {
 
                     // functions here found above csv import
                     // updates x scale for new data
-                    xLinearScale = xScale(smokesData, chosenXAxis);
+                    xLinearScale = xScale(healthData, chosenXAxis);
 
                     // updates x axis with transition
                     xAxis = renderAxes(xLinearScale, xAxis);
@@ -257,4 +261,3 @@ makeResponsive();
 // Event listener for window resize.
 // When the browser window is resized, makeResponsive() is called.
 d3.select(window).on("resize", makeResponsive);
-
